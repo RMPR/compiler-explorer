@@ -1,0 +1,12 @@
+[Unit]
+Description=Create Compiler Explorer cgroups
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=CE_USER_PLACEHOLDER
+ExecStart=/bin/bash SCRIPT_DIR_PLACEHOLDER/ce-cgroups.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
