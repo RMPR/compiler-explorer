@@ -1,6 +1,6 @@
 NODE_VERSION=24
 GCC_VERSIONS=$(seq 9 14)
-LLVM_VERSIONS=$(seq 10 22)
+LLVM_VERSIONS=$(seq 15 22)
 
 
 PROPS="etc/config/c++.defaults.properties"
@@ -79,6 +79,119 @@ for LLVM_VERSION in $LLVM_VERSIONS; do
   set_property "compiler.clang${LLVM_VERSION}.name" "clang ${LLVM_VERSION}" "$PROPS"
 done
 
+# For old versions of LLVM we cannot rely on APT so just get the binaries from the GitHub releases directly.
+sudo apt-get install -y libncurses5
+OLD_LLVM_VERSIONS=""
+while IFS= read -r url || [ -n "$url" ]; do
+  tarball="$SETUP_TMPDIR/$(basename "$url")"
+  wget -qO "$tarball" "$url"
+
+  version=$(basename "$tarball" | sed 's/clang+llvm-\([0-9.]*\)-.*/\1/')
+  major="${version%%.*}"
+  dest="/opt/llvm/$major"
+
+  mkdir -p "$dest"
+  tar -xf "$tarball" -C "$dest" --strip-components=1
+  rm "$tarball"
+
+  ln -sf "$dest/bin/clang++" "/usr/bin/clang++-$major"
+
+  set_property "compiler.clang${major}.exe" "/usr/bin/clang++-${major}" "$PROPS"
+  set_property "compiler.clang${major}.name" "clang ${major}" "$PROPS"
+
+  OLD_LLVM_VERSIONS="${OLD_LLVM_VERSIONS:+${OLD_LLVM_VERSIONS} }${major}"
+done < "$(dirname "$0")/llvm_urls.txt"
+
+current_clangs=$(get_property "group.clang.compilers" "$PROPS")
+set_property "group.clang.compilers" "${current_clangs}:$(make_compiler_list clang "$OLD_LLVM_VERSIONS")" "$PROPS"
+
+
+# Install Zivid SDKs
+# Versions to install are taken from sdk_urls.txt
+while IFS= read -r url; do
+  deb="$SETUP_TMPDIR/$(basename "$url")"
+  wget -qO "$deb" "$url"
+  version=$(basename "$deb" .deb | sed 's/^[^_]*_\([^+]*\).*/\1/')
+  dest="$DEPSDIR/zivid-sdk/$version"
+  mkdir -p "$dest"
+  dpkg -x "$deb" "$dest"
+  rm "$deb"
+done < "$(dirname "$0")/sdk_urls.txt"
+
+# We have an extra 'usr' folder in the folder structure that is not there for Conan packages.
+# Remove it so the Zivid package has the same format as the other dependencies.
+for sdk_dir in "$DEPSDIR/zivid-sdk"/*/; do
+  for subdir in include lib; do
+    [ -d "$sdk_dir/usr/$subdir" ] && mv "$sdk_dir/usr/$subdir" "$sdk_dir/$subdir"
+  done
+  rm -rf "$sdk_dir/usr"
+done
+
+
+# Install Conan packages
+sudo apt-get install -y python3 python3-venv cmake ninja-build jq
+python3 -m venv "$SETUP_TMPDIR/venv"
+source "$SETUP_TMPDIR/venv/bin/activate"
+pip install conan
+conan profile detect
+conan install "$SCRIPT_DIR/conanfile.txt" --build=missing --deployer=full_deploy --deployer-folder="$SETUP_TMPDIR/conan"
+
+# We want to copy the bin, lib and include folders for each package to $DEPSDIR/<package>/<version>.
+# We can query Conan to find out where they are installed. This can differ between packages.
+PKG_REFS=$(conan list "*:*" --format=json | jq -r '
+  .["Local Cache"] | to_entries[] |
+  (.key | split("/")) as [$name, $version] |
+  .value.revisions | to_entries[] |
+  .value.packages // {} | keys[] |
+  "\($name) \($version) \($name)/\($version):\(.)"
+')
+
+while read -r name version ref; do
+  pkg_path=$(conan cache path "$ref")
+  dest="$DEPSDIR/$name/$version"
+
+  for subdir in bin lib include; do
+    if [ -d "$pkg_path/$subdir" ]; then
+      mkdir -p "$dest/$subdir"
+      cp -r "$pkg_path/$subdir/." "$dest/$subdir/"
+    fi
+  done
+done <<< "$PKG_REFS"
+
+
+# Add dependencies to CE
+add_newlines 2 "$PROPS"
+add_comment "Libraries" "$PROPS"
+
+CONAN_LIBS=""
+for pkg_dir in "$DEPSDIR"/*/; do
+  name=$(basename "$pkg_dir")
+
+  versions_list=""
+  for version_dir in "$pkg_dir"*/; do
+    # Skip folders that don't match expected folder structure (at least having an include subdirectory).
+    [ -d "${version_dir}include" ] || continue
+
+    version=$(basename "$version_dir")
+    vkey="${version//./}" # Remove dots
+    versions_list="${versions_list:+${versions_list}:}${vkey}"
+
+    set_property "libs.${name}.versions.${vkey}.version" "$version" "$PROPS"
+    set_property "libs.${name}.versions.${vkey}.path" "${version_dir}include" "$PROPS"
+    set_property "libs.${name}.versions.${vkey}.libpath" "${version_dir}lib" "$PROPS"
+  done
+
+  [ -n "$versions_list" ] || continue
+
+  set_property "libs.${name}.name" "$name" "$PROPS"
+  set_property "libs.${name}.versions" "$versions_list" "$PROPS"
+  add_newlines 1 "$PROPS"
+
+  CONAN_LIBS="${CONAN_LIBS:+${CONAN_LIBS}:}${name}"
+done
+
+set_property "libs" "${CONAN_LIBS}" "$PROPS"
+
 
 # Create service
 sed -e "s|SCRIPT_DIR_PLACEHOLDER|$SCRIPT_DIR|g" \
@@ -89,6 +202,5 @@ sudo systemctl enable compiler-explorer.service
 
 
 # Run Compiler Explorer
-cd ..
+cd "$SCRIPT_DIR/.."
 make EXTRA_ARGS='--language c++'
-cd -

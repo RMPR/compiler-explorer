@@ -19,6 +19,11 @@ add_comment() {
   echo "# ${comment}" >> "$file"
 }
 
+get_property() {
+  local key=$1 file=$2
+  grep "^${key}=" "$file" | cut -d= -f2-
+}
+
 make_compiler_list() {
   local prefix=$1 versions=$2 list=""
   for v in $versions; do

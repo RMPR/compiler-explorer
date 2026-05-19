@@ -1,0 +1,13 @@
+https://downloads.zivid.com/sdk/releases/2.11.0+95829246-1/u22/zivid_2.11.0+95829246-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.11.1+de9b5dae-1/u22/zivid_2.11.1+de9b5dae-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.12.0+6afd4961-1/u22/zivid_2.12.0+6afd4961-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.13.0+99a4ce9e-1/u24/zivid_2.13.0+99a4ce9e-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.13.1+18e79e79-1/u24/zivid_2.13.1+18e79e79-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.14.0+e4a0c4a9-1/u24/zivid_2.14.0+e4a0c4a9-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.14.1+b4e8f261-1/u24/zivid_2.14.1+b4e8f261-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.14.2+1a322f18-1/u24/zivid_2.14.2+1a322f18-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.15.0+5fcc365b-1/u24/zivid_2.15.0+5fcc365b-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u24/zivid_2.16.0+46cdaba6-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.17.0+5fc9f05e-1/u24/zivid_2.17.0+5fc9f05e-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.17.1+7516d437-1/u24/zivid_2.17.1+7516d437-1_amd64.deb
+https://downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u24/zivid_2.17.2+440b2367-1_amd64.deb
