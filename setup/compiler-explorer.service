@@ -1,0 +1,10 @@
+[Unit]
+Description=Start the Compiler Explorer
+After=network.target
+
+[Service]
+WorkingDirectory=SCRIPT_DIR_PLACEHOLDER/..
+ExecStart=make EXTRA_ARGS='--language c++'
+
+[Install]
+WantedBy=multi-user.target
