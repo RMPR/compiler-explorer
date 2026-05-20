@@ -1,7 +1,9 @@
 NODE_VERSION=24
-GCC_VERSIONS=$(seq 9 14)
-LLVM_VERSIONS=$(seq 15 22)
 
+GCC_LATEST=${1:-14}
+LLVM_LATEST=${2:-22}
+GCC_VERSIONS=$(seq 9 $GCC_LATEST)
+LLVM_VERSIONS=$(seq 15 $LLVM_LATEST)
 
 PROPS="etc/config/c++.defaults.properties"
 SETUP_TMPDIR="/tmp/ce-setup"
